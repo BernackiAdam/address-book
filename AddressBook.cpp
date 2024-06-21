@@ -9,6 +9,7 @@ using namespace std;
 
 struct contact{
     int id;
+    int userId;
     string name;
     string surname;
     string email;
@@ -34,6 +35,116 @@ string transformToLower(string line){
     return line;
 }
 
+int checkLogin(user& currentUser, string login, bool save = false){
+    int lastFreeId =0;
+    fstream userFile;
+    userFile.open("users.txt", ios::in | ios::app);
+    string line, item;
+    int lineNr = 1;
+    
+    if(!save){
+        while(getline(userFile,line) && line!=""){
+        stringstream ss(line);
+        user currUser;
+        
+        while(getline(ss, item, '|')){
+            switch(lineNr){
+                case 1: currUser.id = stoi(item); break;
+                case 2: currUser.login = item; break;
+                case 3: 
+                    currUser.passwd = item; 
+                    if(currUser.login == login){
+                        currentUser = currUser;
+                    }
+                    lineNr=0;
+                    break;
+            }
+            lineNr++;
+            
+            }
+            lastFreeId++;
+        }
+    }
+    else{
+        userFile << currentUser.id << "|";
+        userFile << currentUser.login << "|";
+        userFile << currentUser.passwd << "|";
+        userFile << endl;
+        userFile.close();
+        return 0;
+    }
+    userFile.close();
+    return lastFreeId;
+}
+
+void rejestration(user& currUser){
+    string login, password;
+    int lastFreeId;
+    while(true){
+        cout << "Type 0 for exit" << endl;
+        cout << "Enter login: ";
+        cin >> login;
+        if(login == "0") return;
+        lastFreeId = checkLogin(currUser, login);
+        if(currUser.login != ""){
+            cout << "This login is already taken." << endl;
+            cout << endl;
+            continue;
+        }
+        else{
+            cout << "Enter password: ";
+            cin >> password;
+            currUser.id = lastFreeId+1;
+            currUser.login = login;
+            currUser.passwd = password;
+            checkLogin(currUser, login, true);
+            cout << endl;
+            cout << "Account has been created." << endl;
+            cout << endl;
+            return;
+        }
+        
+        
+    }
+}
+
+int login(user &currUser){
+    string login, password;
+    while(true){
+        cout << "Enter your login or type 0 to exit: ";
+        cin >> login;
+        if(login == "0") break;
+        checkLogin(currUser, login);
+        if(currUser.login == ""){
+            cout << "Such user does not exist, try again." << endl;
+            continue; 
+        }
+        else{
+            int incorrectPasswd = 0;
+            while(incorrectPasswd < 3){
+                cout << "Enter your password: ";
+                cin >> password;
+                if(password != currUser.passwd){
+                    cout << "Incorrect password" << endl;
+                    cout << "You have " << 2-incorrectPasswd 
+                        << " attepts left." << endl;
+                        cout << endl;
+                    incorrectPasswd++;
+                    continue;
+                }
+                else{
+                    cout << "Welcome!" << endl;
+                    return currUser.id;
+                }
+                if(incorrectPasswd == 2){
+                    cout << "You reached limit of trys" << endl;
+                    return 0;
+                }
+            }
+        }
+    }
+    return 0;
+}
 void updateFile(vector<contact> &contacts){
     fstream file;
     file.open("newfile.txt", ios::out);
@@ -280,36 +391,62 @@ void editFriend(vector<contact> &contacts){
     else cout << "Data has not been changed" << endl;
 }
 
+
 int main(){
-    int choice;
+    int choice, currUserId;
     vector<contact> contacts;
+    user currUser;
+
     getcontacts(contacts);
     while(1){
-        cout << "Your address book." << endl;
-        cout << "1. Search your friend" << endl;
-        cout << "2. Show all friends" << endl;
-        cout << "3. Add a friend" << endl;
-        cout << "4. Delete a friend" << endl;
-        cout << "5. Edit a friend" << endl;
-        cout << "9. Exit" << endl;
-        cin >> choice;
-        switch(choice){
-            case 1: 
+        if(currUserId==0){
+            cout << "Hello, log in or create new account" << endl;
+            cout << "1. Log in" << endl;
+            cout << "2. Register" << endl;
+            cout << "9. Exit" << endl;
+            cin >> choice;
+            switch(choice){
+                case 1:
+                    currUserId = login(currUser);
+                    break;
+                case 2: 
+                    rejestration(currUser);
+                    break;
+                case 9:
+                    exit(0);
+                default:
+                    break;
+            }
+        }
+        else{
+            cout << "Your address book." << endl;
+            cout << "1. Search your friend" << endl;
+            cout << "2. Show all friends" << endl;
+            cout << "3. Add a friend" << endl;
+            cout << "4. Delete a friend" << endl;
+            cout << "5. Edit a friend" << endl;
+            cout << "9. Exit" << endl;
+            cin >> choice;
+            switch (choice)
+            {
+            case 1:
                 searchFriend(contacts);
                 break;
-            case 2: 
+            case 2:
                 showFriends(contacts);
                 break;
-            case 3: 
+            case 3:
                 addAdresate(contacts);
                 break;
-            case 4: 
+            case 4:
                 deleteAFriend(contacts);
                 break;
-            case 5: 
+            case 5:
                 editFriend(contacts);
                 break;
-            case 9: exit(0);
-        };
+            case 9:
+                exit(0);
+            };
+        }
     }
 }
