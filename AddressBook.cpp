@@ -60,9 +60,8 @@ int checkLogin(user& currentUser, string login, bool save = false){
                     break;
             }
             lineNr++;
-            
+            lastFreeId = currentUser.id;
             }
-            lastFreeId++;
         }
     }
     else{
@@ -145,7 +144,7 @@ int login(user &currUser){
     }
     return 0;
 }
-void updateFile(vector<contact> &contacts){
+void updateFile(vector<contact> &contacts, int currUserId){
     fstream file;
     file.open("newfile.txt", ios::out);
     for(int i=0; i<contacts.size(); i++){
@@ -158,47 +157,44 @@ void updateFile(vector<contact> &contacts){
     }
 }
 
-void getcontacts(vector<contact> &contacts){
+void getcontacts(vector<contact> &contacts, int currUserId, int &lastFreeId){
 
     fstream file;
     file.open("newfile.txt", ios::in);
     string line, item;
-    int lineNr = 1, pose = 0;
+    int lineNr = 1;
 
     while(getline(file,line) && line!=""){
         stringstream ss(line);
-        contact currcontact;
-        while(getline(ss, item, '|')){
+        contact currContact;
+        while(getline(ss, item, '|')){  
             switch(lineNr){
-                case 1: currcontact.id = stoi(item); break;
-                case 2: currcontact.name = item; break;
-                case 3: currcontact.surname = item; break;
-                case 4: currcontact.email = item; break;
-                case 5: currcontact.nrTel = item; break;
-                case 6: currcontact.address = item; lineNr = 0;
-                    contacts.push_back(currcontact);
+                case 1: currContact.id = stoi(item); break;
+                case 2: currContact.userId = stoi(item); break;
+                case 3: currContact.name = item; break;
+                case 4: currContact.surname = item; break;
+                case 5: currContact.email = item; break;
+                case 6: currContact.nrTel = item; break;
+                case 7: currContact.address = item; lineNr = 0;
+                    if(currContact.userId == currUserId){
+                        contacts.push_back(currContact);
+                    }
                     break;
-            }
+            }    
+            lastFreeId = currContact.id;
             lineNr++;
         }
-        pose++;
     }
     file.close();
 }
 
-void addAdresate(vector<contact> &contacts){
+void addAdresate(vector<contact> &contacts, int currUserId, int &lastFreeId){
     fstream file;
     file.open("newfile.txt", ios::app);
     contact newcontact;
-    int freeId;
-    if(contacts.size() > 0){
-        freeId = contacts.back().id + 1;
-    }
-    else{
-        freeId = 1;
-    }
     
-    newcontact.id = freeId;
+    newcontact.id = lastFreeId+1;
+    newcontact.userId = currUserId;
     cout << "Enter new friend's name: ";
     cin >> newcontact.name;
     cout << "Enter new friend's surname: ";
@@ -214,13 +210,14 @@ void addAdresate(vector<contact> &contacts){
     contacts.push_back(newcontact);
 
     file << contacts.back().id << "|";
+    file << contacts.back().userId << "|";
     file << contacts.back().name << "|";
     file << contacts.back().surname << "|";
     file << contacts.back().email << "|";
     file << contacts.back().nrTel << "|";
     file << contacts.back().address << "|" << endl;
 
-
+    lastFreeId++;
     cout << endl;
     cout << "New friend "<<contacts.back().name << " has been added." << endl;
     cout << endl;
@@ -228,7 +225,7 @@ void addAdresate(vector<contact> &contacts){
 
 void showFriends(vector<contact> &contacts){
     for(int i=0; i<contacts.size(); i++){
-        cout << "Friend " << contacts[i].id << ": ";
+        cout << "Friend id. " << contacts[i].id << ": ";
         cout << contacts[i].name << " ";
         cout << contacts[i].surname << ", ";
         cout << contacts[i].email << ", " << endl;
@@ -245,7 +242,7 @@ void searchByName(vector<contact> &contacts){
 
     for(int i=0; i<contacts.size(); i++){
         if(transformToLower(name) == transformToLower(contacts[i].name)){
-            cout << "Friend " << contacts[i].id << ": ";
+            cout << "Friend id " << contacts[i].id << ": ";
             cout << contacts[i].name << " ";
             cout << contacts[i].surname << ", ";
             cout << contacts[i].email << ", " << endl;
@@ -263,7 +260,7 @@ void searchBySurame(vector<contact> &contacts){
 
     for(int i=0; i<contacts.size(); i++){
         if(transformToLower(surname) == transformToLower(contacts[i].surname)){
-            cout << "Friend " << contacts[i].id << ": ";
+            cout << "Friend id " << contacts[i].id << ": ";
             cout << contacts[i].name << " ";
             cout << contacts[i].surname << ", ";
             cout << contacts[i].email << ", " << endl;
@@ -286,7 +283,7 @@ void searchFriend(vector<contact> &contacts){
     }
 }
 
-void deleteAFriend(vector<contact> &contacts){
+void deleteAFriend(vector<contact> &contacts, int currUserId){
     int choice;
     string delName, delSurname;
     showFriends(contacts);
@@ -314,13 +311,13 @@ void deleteAFriend(vector<contact> &contacts){
         return;
     }
 
-    updateFile(contacts);
+    updateFile(contacts, currUserId);
     showFriends(contacts);
     cout << "Friend " << delName << " " << delSurname << " has been deleted." << endl;
 
 }
 
-void editFriend(vector<contact> &contacts){
+void editFriend(vector<contact> &contacts, int currUserId){
     showFriends(contacts);
     int choice, edition;
     cout << "Which friend would you like to edit?" << endl;
@@ -386,7 +383,7 @@ void editFriend(vector<contact> &contacts){
     }
     if(edition>=1 && edition <=5){
         cout << "Data has been changed." << endl;
-        updateFile(contacts);
+        updateFile(contacts, currUserId);
     }
     else cout << "Data has not been changed" << endl;
 }
@@ -394,10 +391,11 @@ void editFriend(vector<contact> &contacts){
 
 int main(){
     int choice, currUserId;
+    int lastFreeId;
     vector<contact> contacts;
     user currUser;
 
-    getcontacts(contacts);
+    
     while(1){
         if(currUserId==0){
             cout << "Hello, log in or create new account" << endl;
@@ -408,6 +406,10 @@ int main(){
             switch(choice){
                 case 1:
                     currUserId = login(currUser);
+                    if(currUserId!=0){
+                        cout << currUserId << endl;
+                        getcontacts(contacts, currUserId, lastFreeId);
+                    }
                     break;
                 case 2: 
                     rejestration(currUser);
@@ -419,12 +421,15 @@ int main(){
             }
         }
         else{
+            cout << currUserId << endl;
             cout << "Your address book." << endl;
             cout << "1. Search your friend" << endl;
             cout << "2. Show all friends" << endl;
             cout << "3. Add a friend" << endl;
             cout << "4. Delete a friend" << endl;
             cout << "5. Edit a friend" << endl;
+            cout << "6. Change Password" << endl;
+            cout << "7. Logout" << endl;
             cout << "9. Exit" << endl;
             cin >> choice;
             switch (choice)
@@ -436,13 +441,19 @@ int main(){
                 showFriends(contacts);
                 break;
             case 3:
-                addAdresate(contacts);
+                addAdresate(contacts, currUserId, lastFreeId);
                 break;
             case 4:
-                deleteAFriend(contacts);
+                deleteAFriend(contacts, currUserId);
                 break;
             case 5:
-                editFriend(contacts);
+                editFriend(contacts, currUserId);
+                break;
+            case 6:
+                break;
+            case 7:
+                contacts.clear();
+                currUserId = 0;
                 break;
             case 9:
                 exit(0);
