@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <sstream>
 #include <vector>
+#include <cstdio>
+#include <filesystem>
+
 
 using namespace std;
 
@@ -144,17 +147,43 @@ int login(user &currUser){
     }
     return 0;
 }
-void updateFile(vector<contact> &contacts, int currUserId){
-    fstream file;
-    file.open("newfile.txt", ios::out);
-    for(int i=0; i<contacts.size(); i++){
-        file << contacts[i].id << "|";
-        file << contacts[i].name << "|";
-        file << contacts[i].surname << "|";
-        file << contacts[i].email << "|";
-        file << contacts[i].nrTel << "|";
-        file << contacts[i].address << "|"<<endl;
+void updateFile(vector<contact> &contacts, int idToCheck){
+
+    fstream userFile;
+    fstream tempFile;
+    userFile.open("newfile.txt", ios::in);
+    tempFile.open("temp.txt", ios::out);
+    string line;
+    stringstream ss;
+    ss << idToCheck;
+    char currId;
+    ss >> currId;
+    while(getline(userFile, line) && line!=""){
+        if(currId != line[0]){
+            tempFile << line << endl;
+        }
+        else{
+            for(auto a : contacts){
+                if(a.id == idToCheck){
+                    tempFile << a.id << "|";
+                    tempFile << a.userId << "|";
+                    tempFile << a.name << "|";
+                    tempFile << a.surname << "|";
+                    tempFile << a.email << "|";
+                    tempFile << a.nrTel << "|";
+                    tempFile << a.address << "|"<<endl;
+                    break;
+                }
+            } 
+        }
     }
+
+    userFile.close();
+    tempFile.close();
+    rename("temp.txt", "temp_temp.txt");
+    rename("newfile.txt", "temp.txt");
+    rename("temp_temp.txt", "newfile.txt");
+
 }
 
 void getcontacts(vector<contact> &contacts, int currUserId, int &lastFreeId){
@@ -294,7 +323,6 @@ void deleteAFriend(vector<contact> &contacts, int currUserId){
     bool found = false;
     size_t i = 0;
     for(auto a : contacts){
-
         if(a.id == choice){
             delName = a.name;
             delSurname = a.surname;
@@ -311,7 +339,7 @@ void deleteAFriend(vector<contact> &contacts, int currUserId){
         return;
     }
 
-    updateFile(contacts, currUserId);
+    updateFile(contacts, choice);
     showFriends(contacts);
     cout << "Friend " << delName << " " << delSurname << " has been deleted." << endl;
 
@@ -383,7 +411,7 @@ void editFriend(vector<contact> &contacts, int currUserId){
     }
     if(edition>=1 && edition <=5){
         cout << "Data has been changed." << endl;
-        updateFile(contacts, currUserId);
+        updateFile(contacts, choice);
     }
     else cout << "Data has not been changed" << endl;
 }
