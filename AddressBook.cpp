@@ -5,11 +5,9 @@
 #include <sstream>
 #include <vector>
 #include <cstdio>
-<<<<<<< HEAD
 #include <filesystem>
 
-=======
->>>>>>> feature/changing-password
+
 
 using namespace std;
 
