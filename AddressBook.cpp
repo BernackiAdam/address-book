@@ -5,8 +5,11 @@
 #include <sstream>
 #include <vector>
 #include <cstdio>
+<<<<<<< HEAD
 #include <filesystem>
 
+=======
+>>>>>>> feature/changing-password
 
 using namespace std;
 
@@ -147,6 +150,7 @@ int login(user &currUser){
     }
     return 0;
 }
+
 void updateFile(vector<contact> &contacts, int idToCheck){
 
     fstream userFile;
@@ -185,6 +189,65 @@ void updateFile(vector<contact> &contacts, int idToCheck){
     rename("temp_temp.txt", "newfile.txt");
 
 }
+
+void changePasswd(user &currUser, int &currUserId){
+    fstream tempFile;
+    fstream userFile;
+    tempFile.open("temp.txt", ios::out);
+    userFile.open("users.txt", ios::in);
+    string oldPassword, newPassword;
+    string line;
+    int trys = 0;
+    while(true){
+        cout << "Enter old password or type 0 to exit: ";
+        cin >> oldPassword;
+        if(oldPassword == "0") return;
+        if(oldPassword != currUser.passwd){
+            if(trys<2){
+                cout << "Password incorrect, try again" << endl;
+                cout << endl;
+                trys++;
+                continue;
+            }
+            else{
+                cout << "You reached limit" << endl;
+                cout << "You will be logged out" << endl;
+                cout << endl;
+                currUserId = 0;
+                return;
+            }
+        }
+        cout << "Enter new password: ";
+        cin >> newPassword;
+        stringstream ss;
+        ss << currUserId;
+        char charId;
+        ss >> charId;
+        while(getline(userFile, line)){
+            if(line[0]!=charId){
+                tempFile << line << endl;
+            }
+            else{
+                currUser.passwd = newPassword;
+                tempFile << currUser.id << "|";
+                tempFile << currUser.login << "|";
+                tempFile << newPassword << "|" << endl;
+            }
+        }
+        userFile.close();
+        tempFile.close();
+        rename("temp.txt", "temp_temp.txt");
+        rename("users.txt", "temp.txt");
+        rename("temp_temp.txt", "users.txt");
+        cout << endl;
+        cout << "Password has been changed" << endl;
+        cout << endl;
+        break;
+    }
+    return;
+}
+
+
 
 void getcontacts(vector<contact> &contacts, int currUserId, int &lastFreeId){
 
@@ -419,7 +482,7 @@ void editFriend(vector<contact> &contacts, int currUserId){
 
 
 int main(){
-    int choice, currUserId;
+    int choice, currUserId =0;
     int lastFreeId;
     vector<contact> contacts;
     user currUser;
@@ -450,7 +513,6 @@ int main(){
             }
         }
         else{
-            cout << currUserId << endl;
             cout << "Your address book." << endl;
             cout << "1. Search your friend" << endl;
             cout << "2. Show all friends" << endl;
@@ -479,6 +541,7 @@ int main(){
                 editFriend(contacts, currUserId);
                 break;
             case 6:
+                changePasswd(currUser, currUserId);
                 break;
             case 7:
                 contacts.clear();
