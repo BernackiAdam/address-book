@@ -404,6 +404,7 @@ void editFriend(vector<contact> &contacts, int currUserId){
         break;
     case 5:
         cout << "Enter new address: ";
+        cin.ignore();
         contacts[i].address = getAddress();
         break;  
     default:
