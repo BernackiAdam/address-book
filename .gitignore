@@ -2,3 +2,4 @@
 *.txt
 test.cpp
 AddressBook copy.cpp
+.vscode

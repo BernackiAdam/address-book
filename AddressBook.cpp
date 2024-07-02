@@ -39,57 +39,67 @@ string transformToLower(string line){
     return line;
 }
 
-int checkLogin(user& currentUser, string login, bool save = false){
-    int lastFreeId =0;
+void getOrSaveUsers(vector<user>& users, bool save = false){
     fstream userFile;
-    userFile.open("users.txt", ios::in | ios::app);
+    userFile.open("users.txt", ios::in | ios::out);
+    int lineNr=1;
     string line, item;
-    int lineNr = 1;
-    
     if(!save){
-        while(getline(userFile,line) && line!=""){
-        stringstream ss(line);
-        user currUser;
-        
-        while(getline(ss, item, '|')){
-            switch(lineNr){
-                case 1: currUser.id = stoi(item); break;
-                case 2: currUser.login = item; break;
-                case 3: 
-                    currUser.passwd = item; 
-                    if(currUser.login == login){
-                        currentUser = currUser;
-                    }
-                    lineNr=0;
-                    break;
-            }
+        while(getline(userFile, line) && line!=""){
+            stringstream ss(line);
+            user user;
+            while(getline(ss, item, '|')){
+                switch(lineNr){
+                    case 1: user.id = stoi(item); break;
+                    case 2: user.login = item; break;
+                    case 3: 
+                        user.passwd = item; 
+                        lineNr=0; 
+                        users.push_back(user);
+                        break;
+                }
             lineNr++;
-            lastFreeId = currentUser.id;
             }
         }
     }
     else{
-        userFile << currentUser.id << "|";
-        userFile << currentUser.login << "|";
-        userFile << currentUser.passwd << "|";
-        userFile << endl;
-        userFile.close();
-        return 0;
+        for(auto user : users){
+            userFile << user.id << "|";
+            userFile << user.login << "|";
+            userFile << user.passwd << "|" << endl;
+        }
+
     }
     userFile.close();
-    return lastFreeId;
 }
 
-void rejestration(user& currUser){
+user checkUser(const vector<user>& currentUsers, string login, int id = 0){
+    user checkedUser;
+    for(user user: currentUsers){
+        if(user.login == login || user.id == id){
+            checkedUser = user;
+            return checkedUser;
+        }
+    }
+    return checkedUser;
+}
+
+void registration(vector<user>& users){
     string login, password;
     int lastFreeId;
+    if(users.empty()){
+        lastFreeId = 0;
+    }
+    else {
+        lastFreeId = users.back().id;
+    }
     while(true){
         cout << "Type 0 for exit" << endl;
         cout << "Enter login: ";
         cin >> login;
         if(login == "0") return;
-        lastFreeId = checkLogin(currUser, login);
-        if(currUser.login != ""){
+        user checkedUser = checkUser(users, login);
+        if(checkedUser.login != ""){
             cout << "This login is already taken." << endl;
             cout << endl;
             continue;
@@ -97,28 +107,27 @@ void rejestration(user& currUser){
         else{
             cout << "Enter password: ";
             cin >> password;
-            currUser.id = lastFreeId+1;
-            currUser.login = login;
-            currUser.passwd = password;
-            checkLogin(currUser, login, true);
+            checkedUser.id = lastFreeId+1;
+            checkedUser.login = login;
+            checkedUser.passwd = password;
+            users.push_back(checkedUser);
+            getOrSaveUsers(users, true);
             cout << endl;
             cout << "Account has been created." << endl;
             cout << endl;
             return;
-        }
-        
-        
+        }  
     }
 }
 
-int login(user &currUser){
+int login(vector<user> &users){
     string login, password;
     while(true){
         cout << "Enter your login or type 0 to exit: ";
         cin >> login;
         if(login == "0") break;
-        checkLogin(currUser, login);
-        if(currUser.login == ""){
+        user checkedUser = checkUser(users, login);
+        if(checkedUser.login == ""){
             cout << "Such user does not exist, try again." << endl;
             continue; 
         }
@@ -127,7 +136,7 @@ int login(user &currUser){
             while(incorrectPasswd < 3){
                 cout << "Enter your password: ";
                 cin >> password;
-                if(password != currUser.passwd){
+                if(password != checkedUser.passwd){
                     cout << "Incorrect password" << endl;
                     cout << "You have " << 2-incorrectPasswd 
                         << " attepts left." << endl;
@@ -137,7 +146,7 @@ int login(user &currUser){
                 }
                 else{
                     cout << "Welcome!" << endl;
-                    return currUser.id;
+                    return checkedUser.id;
                 }
                 if(incorrectPasswd == 2){
                     cout << "You reached limit of trys" << endl;
@@ -149,11 +158,54 @@ int login(user &currUser){
     return 0;
 }
 
+int getUserIndex(const vector<user> &users, int currUserId){
+    int index=0;
+    for(auto user : users){
+        if(user.id == currUserId){
+            return index;
+        }
+        index++;
+    }
+    return 0;
+}
+
+void changePasswd(vector<user> &users, int &currUserId){
+    string oldPassword, newPassword;
+    string line;
+    int trys = 0;
+    int userIndex = getUserIndex(users, currUserId);
+    while(true){
+        cout << "Enter old password or type 0 to exit: ";
+        cin >> oldPassword;
+        if(oldPassword == "0") return;
+        if(oldPassword != users[userIndex].passwd){
+            if(trys<2){
+                cout << "Password incorrect, try again" << endl;
+                cout << endl;
+                trys++;
+                continue;
+            }
+            else{
+                cout << "You reached limit" << endl;
+                cout << "You will be logged out" << endl;
+                cout << endl;
+                currUserId = 0;
+                return;
+            }
+        }
+        cout << "Enter new password: ";
+        cin >> newPassword;
+        users[userIndex].passwd = newPassword;
+        getOrSaveUsers(users, true);
+    }
+    return;
+}
+
 void updateFile(vector<contact> &contacts, int idToCheck){
 
     fstream userFile;
     fstream tempFile;
-    userFile.open("newfile.txt", ios::in);
+    userFile.open("contacts.txt", ios::in);
     tempFile.open("temp.txt", ios::out);
     string line;
     stringstream ss;
@@ -183,74 +235,15 @@ void updateFile(vector<contact> &contacts, int idToCheck){
     userFile.close();
     tempFile.close();
     rename("temp.txt", "temp_temp.txt");
-    rename("newfile.txt", "temp.txt");
-    rename("temp_temp.txt", "newfile.txt");
+    rename("contacts.txt", "temp.txt");
+    rename("temp_temp.txt", "contacts.txt");
 
 }
-
-void changePasswd(user &currUser, int &currUserId){
-    fstream tempFile;
-    fstream userFile;
-    tempFile.open("temp.txt", ios::out);
-    userFile.open("users.txt", ios::in);
-    string oldPassword, newPassword;
-    string line;
-    int trys = 0;
-    while(true){
-        cout << "Enter old password or type 0 to exit: ";
-        cin >> oldPassword;
-        if(oldPassword == "0") return;
-        if(oldPassword != currUser.passwd){
-            if(trys<2){
-                cout << "Password incorrect, try again" << endl;
-                cout << endl;
-                trys++;
-                continue;
-            }
-            else{
-                cout << "You reached limit" << endl;
-                cout << "You will be logged out" << endl;
-                cout << endl;
-                currUserId = 0;
-                return;
-            }
-        }
-        cout << "Enter new password: ";
-        cin >> newPassword;
-        stringstream ss;
-        ss << currUserId;
-        char charId;
-        ss >> charId;
-        while(getline(userFile, line)){
-            if(line[0]!=charId){
-                tempFile << line << endl;
-            }
-            else{
-                currUser.passwd = newPassword;
-                tempFile << currUser.id << "|";
-                tempFile << currUser.login << "|";
-                tempFile << newPassword << "|" << endl;
-            }
-        }
-        userFile.close();
-        tempFile.close();
-        rename("temp.txt", "temp_temp.txt");
-        rename("users.txt", "temp.txt");
-        rename("temp_temp.txt", "users.txt");
-        cout << endl;
-        cout << "Password has been changed" << endl;
-        cout << endl;
-        break;
-    }
-    return;
-}
-
-
 
 void getcontacts(vector<contact> &contacts, int currUserId, int &lastFreeId){
 
     fstream file;
-    file.open("newfile.txt", ios::in);
+    file.open("contacts.txt", ios::in);
     string line, item;
     int lineNr = 1;
 
@@ -280,7 +273,7 @@ void getcontacts(vector<contact> &contacts, int currUserId, int &lastFreeId){
 
 void addAdresate(vector<contact> &contacts, int currUserId, int &lastFreeId){
     fstream file;
-    file.open("newfile.txt", ios::app);
+    file.open("contacts.txt", ios::app);
     contact newcontact;
     
     newcontact.id = lastFreeId+1;
@@ -325,6 +318,16 @@ void showFriends(vector<contact> &contacts){
     }
 }
 
+void writeOutContactByIndex(const vector<contact>& contacts, int index){
+    cout << "Friend id " << contacts[index].id << ": ";
+            cout << contacts[index].name << " ";
+            cout << contacts[index].surname << ", ";
+            cout << contacts[index].email << ", " << endl;
+            cout << contacts[index].nrTel << ", ";
+            cout << contacts[index].address << endl;
+            cout << endl;
+}
+
 void searchByName(vector<contact> &contacts){
     string name;
     cout << "Enter a name: ";
@@ -332,13 +335,7 @@ void searchByName(vector<contact> &contacts){
 
     for(int i=0; i<contacts.size(); i++){
         if(transformToLower(name) == transformToLower(contacts[i].name)){
-            cout << "Friend id " << contacts[i].id << ": ";
-            cout << contacts[i].name << " ";
-            cout << contacts[i].surname << ", ";
-            cout << contacts[i].email << ", " << endl;
-            cout << contacts[i].nrTel << ", ";
-            cout << contacts[i].address << endl;
-            cout << endl;
+            writeOutContactByIndex(contacts, i);
         }
     }
 }
@@ -350,13 +347,7 @@ void searchBySurame(vector<contact> &contacts){
 
     for(int i=0; i<contacts.size(); i++){
         if(transformToLower(surname) == transformToLower(contacts[i].surname)){
-            cout << "Friend id " << contacts[i].id << ": ";
-            cout << contacts[i].name << " ";
-            cout << contacts[i].surname << ", ";
-            cout << contacts[i].email << ", " << endl;
-            cout << contacts[i].nrTel << ", ";
-            cout << contacts[i].address << endl;
-            cout << endl;
+            writeOutContactByIndex(contacts, i);
         }
     }
 }
@@ -483,11 +474,12 @@ int main(){
     int choice, currUserId =0;
     int lastFreeId;
     vector<contact> contacts;
-    user currUser;
+    vector<user> users;
 
     
     while(1){
         if(currUserId==0){
+            if(users.empty()) getOrSaveUsers(users);
             cout << "Hello, log in or create new account" << endl;
             cout << "1. Log in" << endl;
             cout << "2. Register" << endl;
@@ -495,14 +487,14 @@ int main(){
             cin >> choice;
             switch(choice){
                 case 1:
-                    currUserId = login(currUser);
+                    currUserId = login(users);
                     if(currUserId!=0){
                         cout << currUserId << endl;
                         getcontacts(contacts, currUserId, lastFreeId);
                     }
                     break;
                 case 2: 
-                    rejestration(currUser);
+                    registration(users);
                     break;
                 case 9:
                     exit(0);
@@ -539,7 +531,7 @@ int main(){
                 editFriend(contacts, currUserId);
                 break;
             case 6:
-                changePasswd(currUser, currUserId);
+                changePasswd(users, currUserId);
                 break;
             case 7:
                 contacts.clear();
