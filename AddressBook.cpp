@@ -197,6 +197,9 @@ void changePasswd(vector<user> &users, int &currUserId){
         cin >> newPassword;
         users[userIndex].passwd = newPassword;
         getOrSaveUsers(users, true);
+        cout << "Password has been changed" << endl;
+        cout << endl;
+        break;
     }
     return;
 }
